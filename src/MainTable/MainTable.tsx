@@ -4,12 +4,18 @@ import { connect } from 'react-redux';
 function MainTable({ Players, AddPlayer }: { Players: Player[], AddPlayer: (name: string) => void }) {
     const [newPlayer, setNewPlayerName] = useState("");
 
-    return <div>
+    return <table>
         {
-            Players.map(player => <div>{player.name}</div>)
+            Players.map(player => <tr>{player.name}</tr>)
         }
-        <input onChange={(event) => { const newPlayerName = event.target.value; setNewPlayerName(newPlayerName) }} onKeyDown={(event) => { if (event.keyCode == 13) { AddPlayer(newPlayer) } }}></input>
-    </div>
+        <input value={newPlayer} onChange={(event) => { const newPlayerName = event.target.value; setNewPlayerName(newPlayerName) }}
+            onKeyDown={(event) => {
+                if (event.keyCode == 13) {
+                    AddPlayer(newPlayer);
+                    setNewPlayerName("")
+                }
+            }}></input>
+    </table>
 }
 
 type Player = { name: string };
@@ -29,11 +35,11 @@ export const reducer = (state: Player[] = [], action: any) => {
     }
 }
 
-const mapStateToProps = (state:any) => ({Players:state.Players}) 
+const mapStateToProps = (state: any) => ({ Players: state.Players })
 
-const mapDispatchToProps = (dispatch:any) => ({AddPlayer: (PlayerName:string) => dispatch({type:"ADD_PLAYER", PlayerName})})
+const mapDispatchToProps = (dispatch: any) => ({ AddPlayer: (PlayerName: string) => dispatch({ type: "ADD_PLAYER", PlayerName }) })
 
 export default connect(
     mapStateToProps,
     mapDispatchToProps
-) (MainTable)
+)(MainTable)
