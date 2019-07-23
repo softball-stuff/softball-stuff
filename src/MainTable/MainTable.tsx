@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { connect } from "react-redux";
+import { RootState } from "../reducers";
 
 function MainTable({
   Players,
@@ -12,7 +13,7 @@ function MainTable({
   Players: PlayerState;
   Positions: PositionState;
   AddPosition: (positionName: string) => void;
-  RemovePosition: (position : Position) => void;
+  RemovePosition: (position: Position) => void;
   AddPlayer: (name: string) => void;
   RemovePlayer: (player: Player) => void;
 }) {
@@ -112,7 +113,7 @@ type Inning = { positions: Record<number, number> };
 
 export const playerReducer = (
   state: PlayerState = { store: {}, nextId: 0, order: [] },
-  action: any
+  action: PlayerAction
 ) => {
   switch (action.type) {
     case "ADD_PLAYER":
@@ -142,7 +143,7 @@ export const playerReducer = (
 
 export const positionReducer = (
   state: PositionState = { store: {}, nextId: 0 },
-  action: any
+  action: PositionAction
 ) => {
   switch (action.type) {
     case "ADD_POSITION":
@@ -162,25 +163,57 @@ export const positionReducer = (
       };
     case "REMOVE_POSITION":
       delete state.store[action.Position.id]
-      return {...state};
+      return { ...state };
     default:
       return state;
   }
 };
 
-const mapStateToProps = (state: any) => ({
+const mapStateToProps = (state: RootState) => ({
   Players: state.Players,
   Positions: state.Positions
 });
 
+type AddPlayerAction = { type: "ADD_PLAYER", PlayerName: string };
+type RemovePlayerAction = { type: "REMOVE_PLAYER", Player: Player };
+type PlayerAction = AddPlayerAction | RemovePlayerAction;
+type AddPositionAction = { type: "ADD_POSITION", PositionName: string };
+type RemovePositionAction = { type: "REMOVE_POSITION", Position: Position };
+type PositionAction = AddPositionAction | RemovePositionAction;
+
+function addPlayer(PlayerName: string): PlayerAction {
+  return {
+    type: "ADD_PLAYER",
+    PlayerName
+  }
+}
+
+function removePlayer(Player: Player): PlayerAction {
+  return {
+    type: "REMOVE_PLAYER",
+    Player
+  }
+}
+
+function addPosition(PositionName: string): PositionAction {
+  return {
+    type: "ADD_POSITION",
+    PositionName
+  }
+}
+
+function removePosition(Position: Position): PositionAction {
+  return {
+    type: "REMOVE_POSITION",
+    Position
+  }
+}
+
 const mapDispatchToProps = (dispatch: any) => ({
-  AddPlayer: (PlayerName: string) =>
-    dispatch({ type: "ADD_PLAYER", PlayerName }),
-  RemovePlayer: (Player: Player) => dispatch({ type: "REMOVE_PLAYER", Player }),
-  AddPosition: (PositionName: string) =>
-    dispatch({ type: "ADD_POSITION", PositionName }),
-    RemovePosition: (Position: Position) =>
-    dispatch({ type: "REMOVE_POSITION", Position})
+  AddPlayer: (PlayerName: string) => dispatch(addPlayer(PlayerName)),
+  RemovePlayer: (Player: Player) => dispatch(removePlayer(Player)),
+  AddPosition: (PositionName: string) => dispatch(addPosition(PositionName)),
+  RemovePosition: (Position: Position) => dispatch(removePosition(Position))
 });
 
 export default connect(
