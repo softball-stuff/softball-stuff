@@ -6,24 +6,28 @@ function MainTable({
   Players,
   Positions,
   Innings,
-  AddPosition,
-  RemovePosition,
   AddPlayer,
   RemovePlayer,
-  SetPlayerPosition
+  AddPosition,
+  RemovePosition,
+  SetPlayerPosition,
+  AddInning,
+  LockInning
 }: {
   Players: PlayerState;
   Positions: PositionState;
   Innings: InningState;
-  AddPosition: (positionName: string) => void;
-  RemovePosition: (position: Position) => void;
   AddPlayer: (name: string) => void;
   RemovePlayer: (player: Player) => void;
+  AddPosition: (positionName: string) => void;
+  RemovePosition: (position: Position) => void;
   SetPlayerPosition: (
     Inning: number,
     Player: Player,
     Position: Position
   ) => void;
+  AddInning: () => void;
+  LockInning: (Inning: number) => void;
 }) {
   const [newPlayer, setNewPlayerName] = useState("");
   const [newPosition, setNewPositionName] = useState("");
@@ -35,7 +39,14 @@ function MainTable({
           <td>Innings</td>
           <td />
           {Innings.map((inning, ii) => (
-            <td>{ii + 1}</td>
+            <td style={{ cursor: "pointer" }} onClick={() => LockInning(ii)}>
+              {ii + 1}{" "}
+              {inning.locked ? (
+                <i className="em em-lock" />
+              ) : (
+                <i className="em em-unlock" />
+              )}
+            </td>
           ))}
         </tr>
         {Players.order.map(playerId => {
@@ -49,18 +60,26 @@ function MainTable({
               </td>
               {Innings.map((inning, ii) => (
                 <td>
-                  <select
-                    value={inning.positions[playerId] || "0"}
-                    onChange={item => {
-                      debugger;
-                      SetPlayerPosition(ii, Players.store[playerId], Positions.store[item.target.value as unknown as number])
-                    }
-                    }
-                  >
-                    {Object.values(Positions.store).map(position => (
-                      <option value={position.id}>{position.name}</option>
-                    ))}
-                  </select>
+                  {inning.locked === true ? (
+                    Positions.store[inning.positions[playerId] || 0].name
+                  ) : (
+                    <select
+                      value={inning.positions[playerId] || "0"}
+                      onChange={item => {
+                        SetPlayerPosition(
+                          ii,
+                          Players.store[playerId],
+                          Positions.store[
+                            (item.target.value as unknown) as number
+                          ]
+                        );
+                      }}
+                    >
+                      {Object.values(Positions.store).map(position => (
+                        <option value={position.id}>{position.name}</option>
+                      ))}
+                    </select>
+                  )}
                 </td>
               ))}
             </tr>
@@ -164,7 +183,7 @@ type PlayerState = {
   order: number[];
 };
 type Player = { name: string; id: number };
-type Inning = { positions: Record<number, number> };
+type Inning = { positions: Record<number, number>; locked: boolean };
 type InningState = Inning[];
 
 export const playerReducer = (
@@ -244,15 +263,21 @@ export const positionReducer = (
 };
 
 export const inningReducer = (
-  state: InningState = [...Array(7)].map(id => ({ positions: {} })),
+  state: InningState = [...Array(7)].map(id => ({
+    positions: {},
+    locked: false
+  })),
   action: InningAction
 ) => {
+  const newState = [...state];
   switch (action.type) {
     case "ADD_INNING":
-      return [...state, { positions: {} }];
+      return [...state, { positions: {}, locked: false }];
     case "SET_PLAYER_POSITION":
-      const newState = [...state];
       newState[action.Inning].positions[action.Player.id] = action.Position.id;
+      return newState;
+    case "LOCK_INNING":
+      newState[action.Inning].locked = !newState[action.Inning].locked;
       return newState;
     default:
       return state;
@@ -272,7 +297,11 @@ type SetPlayerPositionAction = {
   Position: Position;
 };
 type AddInningAction = { type: "ADD_INNING" };
-type InningAction = SetPlayerPositionAction | AddInningAction;
+type LockInningAction = { type: "LOCK_INNING"; Inning: number };
+type InningAction =
+  | SetPlayerPositionAction
+  | AddInningAction
+  | LockInningAction;
 
 function addPlayer(PlayerName: string): PlayerAction {
   return {
@@ -315,6 +344,19 @@ function setPlayerPosition(
   };
 }
 
+function addInning(): InningAction {
+  return {
+    type: "ADD_INNING"
+  };
+}
+
+function lockInning(Inning: number): InningAction {
+  return {
+    type: "LOCK_INNING",
+    Inning
+  };
+}
+
 const mapStateToProps = (state: RootState) => ({
   Players: state.Players,
   Positions: state.Positions,
@@ -327,7 +369,9 @@ const mapDispatchToProps = (dispatch: any) => ({
   AddPosition: (PositionName: string) => dispatch(addPosition(PositionName)),
   RemovePosition: (Position: Position) => dispatch(removePosition(Position)),
   SetPlayerPosition: (Inning: number, Player: Player, Position: Position) =>
-    dispatch(setPlayerPosition(Inning, Player, Position))
+    dispatch(setPlayerPosition(Inning, Player, Position)),
+  AddInning: () => dispatch(addInning()),
+  LockInning: (Inning: number) => dispatch(lockInning(Inning))
 });
 
 export default connect(
