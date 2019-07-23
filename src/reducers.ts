@@ -1,6 +1,8 @@
 import { combineReducers } from "redux";
-import { reducer as Players } from "./MainTable/MainTable"
+import { playerReducer as Players } from "./MainTable/MainTable"
+import { positionReducer as Positions } from "./MainTable/MainTable"
 
 export default combineReducers({
-    Players
+    Players,
+    Positions
 })
