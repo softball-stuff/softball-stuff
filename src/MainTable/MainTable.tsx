@@ -9,6 +9,8 @@ function MainTable({
   AddPlayer,
   RemovePlayer,
   ExpandPlayer,
+  AddPlayerPreference,
+  RemovePlayerPreference,
   AddPosition,
   RemovePosition,
   SetPlayerPosition,
@@ -21,6 +23,8 @@ function MainTable({
   AddPlayer: (name: string) => void;
   RemovePlayer: (player: Player) => void;
   ExpandPlayer: (player: Player) => void;
+  AddPlayerPreference: (player: Player, position: Position) => void;
+  RemovePlayerPreference: (player: Player, position: Position) => void;
   AddPosition: (positionName: string) => void;
   RemovePosition: (position: Position) => void;
   SetPlayerPosition: (
@@ -88,34 +92,35 @@ function MainTable({
             </tr>,
             playerId === Players.expanded ? (
               <tr>
-                <td><button onClick={() => RemovePlayer(Players.store[playerId])}>
-                  Remove Player
-                </button></td>
-                <td>Preferences:</td>
-                {Innings.map((inning, ii) => (
                 <td>
-                  {inning.locked === true ? (
-                    Positions.store[inning.positions[playerId] || 0].name
-                  ) : (
-                    <select
-                      value={inning.positions[playerId] || "0"}
-                      onChange={item => {
-                        SetPlayerPosition(
-                          ii,
-                          Players.store[playerId],
-                          Positions.store[
-                            (item.target.value as unknown) as number
-                          ]
-                        );
-                      }}
-                    >
-                      {Object.values(Positions.store).map(position => (
-                        <option value={position.id}>{position.name}</option>
-                      ))}
-                    </select>
-                  )}
+                  <button onClick={() => RemovePlayer(Players.store[playerId])}>
+                    Remove Player
+                  </button>
                 </td>
-              ))}
+                <td>Preferences:</td>
+                {/** Only create one select for each chosen position + 1 empty. For each chosen positon selected, have to call remove chosen position followed by add chosen position. For the empty just call add new position. 
+                Kyle says have fun, get some sleep. */}
+                {Innings.map((inning, ii) => (
+                  <td>
+                    {inning.locked === true ? (
+                      Positions.store[inning.positions[playerId] || 0].name
+                    ) : (
+                      <select
+                        value={inning.positions[playerId] || "0"}
+                        onChange={event => {
+                          AddPlayerPreference(
+                            Players.store[playerId],
+                            Positions.store[(event.target.value as unknown) as number]
+                          );
+                        }}
+                      >
+                        {Object.values(Positions.store).map(position => (
+                          <option value={position.id}>{position.name}</option>
+                        ))}
+                      </select>
+                    )}
+                  </td>
+                ))}
               </tr>
             ) : null
           ];
@@ -218,7 +223,7 @@ type PlayerState = {
   order: number[];
   expanded: number;
 };
-type Player = { name: string; id: number };
+type Player = { name: string; id: number; preferences: number[] };
 type Inning = { positions: Record<number, number>; locked: boolean };
 type InningState = Inning[];
 
@@ -235,7 +240,8 @@ export const playerReducer = (
           ...state.store,
           [id]: {
             name: action.PlayerName,
-            id
+            id,
+            preferences: []
           }
         },
         nextId: state.nextId,
@@ -253,6 +259,12 @@ export const playerReducer = (
         ...state,
         expanded: action.Player.id
       };
+    case "ADD_PREFERENCE":
+      state.store[action.Player.id].preferences.concat(action.Position.id)
+      return {...state};
+    case "REMOVE_PREFERENCE":
+      delete state.store[action.Player.id].preferences[action.Position.id];
+      return {...state};
     default:
       return state;
   }
@@ -329,7 +341,22 @@ export const inningReducer = (
 type AddPlayerAction = { type: "ADD_PLAYER"; PlayerName: string };
 type RemovePlayerAction = { type: "REMOVE_PLAYER"; Player: Player };
 type ExpandPlayerAction = { type: "EXPAND_PLAYER"; Player: Player };
-type PlayerAction = AddPlayerAction | RemovePlayerAction | ExpandPlayerAction;
+type AddPlayerPreferenceAction = {
+  type: "ADD_PREFERENCE";
+  Player: Player;
+  Position: Position;
+};
+type RemovePlayerPreferenceAction = {
+  type: "REMOVE_PREFERENCE";
+  Player: Player;
+  Position: Position;
+};
+type PlayerAction =
+  | AddPlayerAction
+  | RemovePlayerAction
+  | ExpandPlayerAction
+  | AddPlayerPreferenceAction
+  | RemovePlayerPreferenceAction;
 type AddPositionAction = { type: "ADD_POSITION"; PositionName: string };
 type RemovePositionAction = { type: "REMOVE_POSITION"; Position: Position };
 type PositionAction = AddPositionAction | RemovePositionAction;
@@ -364,6 +391,25 @@ function expandPlayer(Player: Player): PlayerAction {
   return {
     type: "EXPAND_PLAYER",
     Player
+  };
+}
+
+function addPlayerPreference(Player: Player, Position: Position): PlayerAction {
+  return {
+    type: "ADD_PREFERENCE",
+    Player,
+    Position
+  };
+}
+
+function removePlayerPreference(
+  Player: Player,
+  Position: Position
+): PlayerAction {
+  return {
+    type: "REMOVE_PREFERENCE",
+    Player,
+    Position
   };
 }
 
@@ -417,6 +463,10 @@ const mapDispatchToProps = (dispatch: any) => ({
   AddPlayer: (PlayerName: string) => dispatch(addPlayer(PlayerName)),
   RemovePlayer: (Player: Player) => dispatch(removePlayer(Player)),
   ExpandPlayer: (Player: Player) => dispatch(expandPlayer(Player)),
+  AddPlayerPreference: (Player: Player, Position: Position) =>
+    dispatch(addPlayerPreference(Player, Position)),
+  RemovePlayerPreference: (Player: Player, Position: Position) =>
+    dispatch(removePlayerPreference(Player, Position)),
   AddPosition: (PositionName: string) => dispatch(addPosition(PositionName)),
   RemovePosition: (Position: Position) => dispatch(removePosition(Position)),
   SetPlayerPosition: (Inning: number, Player: Player, Position: Position) =>
