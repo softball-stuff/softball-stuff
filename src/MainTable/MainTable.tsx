@@ -62,7 +62,7 @@ function MainTable({
                 style={{ cursor: "pointer" }}
                 onClick={() => ExpandPlayer(Players.store[playerId])}
               >
-                {Players.store[playerId].name}
+                {((Players.expanded !== playerId) ? "\u25B6 " : "\u25BC ") + Players.store[playerId].name}
               </td>
               <td />
               {Innings.map((inning, ii) => (
@@ -275,12 +275,18 @@ export const playerReducer = (
     case "EXPAND_PLAYER":
       return {
         ...state,
-        expanded: action.Player.id
+        expanded: (action.Player.id === state.expanded) ? -1 : action.Player.id
       };
     case "ADD_PREFERENCE":
-      state.store[action.Player.id].preferences.push(action.Position.id)
+      if (!state.store[action.Player.id].preferences.includes(action.Position.id) && (action.Position.id !== 0))
+      {
+        state.store[action.Player.id].preferences.push(action.Position.id);
+      }
       return {...state};
     case "REMOVE_PREFERENCE":
+      state.store[action.Player.id].preferences = state.store[action.Player.id].preferences.filter(
+        preference => preference !== action.Position.id
+      );
       delete state.store[action.Player.id].preferences[action.Position.id];
       return {...state};
     default:
