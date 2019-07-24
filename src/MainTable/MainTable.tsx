@@ -54,6 +54,13 @@ function MainTable({
               )}
             </td>
           ))}
+          {Innings.length >= 10 ? (
+            <td />
+          ) : (
+            <td>
+              <button onClick={() => AddInning()}>+</button>
+            </td>
+          )}
         </tr>
         {Players.order.map(playerId => {
           return [
@@ -62,7 +69,8 @@ function MainTable({
                 style={{ cursor: "pointer" }}
                 onClick={() => ExpandPlayer(Players.store[playerId])}
               >
-                {((Players.expanded !== playerId) ? "\u25B6 " : "\u25BC ") + Players.store[playerId].name}
+                {(Players.expanded !== playerId ? "\u25B6 " : "\u25BC ") +
+                  Players.store[playerId].name}
               </td>
               <td />
               {Innings.map((inning, ii) => (
@@ -90,57 +98,115 @@ function MainTable({
                 </td>
               ))}
             </tr>,
-            playerId === Players.expanded ? (
-              <tr>
-                <td>
-                  <button onClick={() => RemovePlayer(Players.store[playerId])}>
-                    Remove Player
-                  </button>
-                </td>
-                <td>Preferences:</td>
-                {/** Only create one select for each chosen position + 1 empty. For each chosen positon selected, have to call remove chosen position followed by add chosen position. For the empty just call add new position. 
+            playerId === Players.expanded
+              ? [
+                  <tr>
+                    <td>
+                      <button
+                        onClick={() => RemovePlayer(Players.store[playerId])}
+                      >
+                        Remove Player
+                      </button>
+                    </td>
+                    <td>Preferences:</td>
+                    {/** Only create one select for each chosen position + 1 empty. For each chosen positon selected, have to call remove chosen position followed by add chosen position. For the empty just call add new position. 
                 Kyle says have fun, get some sleep. */}
-                {Players.store[playerId].preferences.map((pref, ii) => (
-                  <td>
-                    {
-                      <select
-                        value={pref}
-                        onChange={event => {
-                          RemovePlayerPreference(Players.store[playerId],Positions.store[pref]);
-                          AddPlayerPreference(
-                            Players.store[playerId],
-                            Positions.store[(event.target.value as unknown) as number]
-                          );
-                        }}
-                      >
-                        {Object.values(Positions.store).map(position => (
-                          <option value={position.id}>{position.name}</option>
-                        ))}
-                      </select>
-                   }
-                  </td>
-                  
-                ))}
-                
-                <td>
-                    {
-                      <select
-                        value={"0"}
-                        onChange={event => {
-                          AddPlayerPreference(
-                            Players.store[playerId],
-                            Positions.store[(event.target.value as unknown) as number]
-                          );
-                        }}
-                      >
-                        {Object.values(Positions.store).map(position => (
-                          <option value={position.id}>{position.name}</option>
-                        ))}
-                      </select>
-                   }
-                  </td>
-              </tr>
-            ) : null
+                    {Object.entries(Players.store[playerId].preferences).map(
+                      ([postionId, pref], ii) => (
+                        <td>
+                          {
+                            <select
+                              value={pref.id}
+                              onChange={event => {
+                                RemovePlayerPreference(
+                                  Players.store[playerId],
+                                  Positions.store[pref.id]
+                                );
+                                AddPlayerPreference(
+                                  Players.store[playerId],
+                                  Positions.store[
+                                    (event.target.value as unknown) as number
+                                  ]
+                                );
+                              }}
+                            >
+                              {Object.values(Positions.store).map(position => (
+                                <option value={position.id}>
+                                  {position.name}
+                                </option>
+                              ))}
+                            </select>
+                          }
+                        </td>
+                      )
+                    )}
+
+                    <td>
+                      {
+                        <select
+                          value={"0"}
+                          onChange={event => {
+                            AddPlayerPreference(
+                              Players.store[playerId],
+                              Positions.store[
+                                (event.target.value as unknown) as number
+                              ]
+                            );
+                          }}
+                        >
+                          {Object.values(Positions.store).map(position => (
+                            <option value={position.id}>{position.name}</option>
+                          ))}
+                        </select>
+                      }
+                    </td>
+                  </tr>,
+                  <tr>
+                    <td />
+                    <td>Min Innings:</td>
+                    {/*Innings.map((inning, ii) => (
+                      <td>
+                        {inning.locked === true ? (
+                          Positions.store[inning.positions[playerId] || 0].name
+                        ) : (
+                          <select
+                            value={inning.positions[playerId] || "0"}
+                            onChange={item => {
+                              SetPlayerPosition(
+                                ii,
+                                Players.store[playerId],
+                                Positions.store[
+                                  (item.target.value as unknown) as number
+                                ]
+                              );
+                            }}
+                          >
+                            {Object.values(Positions.store).map(position => (
+                              <option value={position.id}>
+                                {position.name}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </td>
+                            ))*/}
+                    {Object.entries(Players.store[playerId].preferences).map(
+                      ([postionId, pref], ii) => (
+                        <td>{<select value={pref.minInnings} />}</td>
+                      )
+                    )}
+                  </tr>,
+                  <tr>
+                    <td />
+                    <td>Max Innings:</td>
+                    {Object.entries(Players.store[playerId].preferences).map(
+                      ([postionId, pref], ii) => (
+                        <td>{<select value={pref.minInnings} />}</td>
+                      )
+                    )}
+                  </tr>
+                ]
+              : null
           ];
         })}
         <tr>
@@ -241,9 +307,14 @@ type PlayerState = {
   order: number[];
   expanded: number;
 };
-type Player = { name: string; id: number; preferences: number[] };
+type Player = {
+  name: string;
+  id: number;
+  preferences: Record<number, Preference>;
+};
 type Inning = { positions: Record<number, number>; locked: boolean };
 type InningState = Inning[];
+type Preference = { id: number; maxInnings: number; minInnings: number };
 
 export const playerReducer = (
   state: PlayerState = { store: {}, nextId: 0, order: [], expanded: -1 },
@@ -259,7 +330,7 @@ export const playerReducer = (
           [id]: {
             name: action.PlayerName,
             id,
-            preferences: []
+            preferences: {}
           }
         },
         nextId: state.nextId,
@@ -275,20 +346,21 @@ export const playerReducer = (
     case "EXPAND_PLAYER":
       return {
         ...state,
-        expanded: (action.Player.id === state.expanded) ? -1 : action.Player.id
+        expanded: action.Player.id === state.expanded ? -1 : action.Player.id
       };
     case "ADD_PREFERENCE":
-      if (!state.store[action.Player.id].preferences.includes(action.Position.id) && (action.Position.id !== 0))
-      {
-        state.store[action.Player.id].preferences.push(action.Position.id);
+      if (action.Position.id !== 0) {
+        state.store[action.Player.id].preferences[action.Position.id] = state
+          .store[action.Player.id].preferences[action.Position.id] || {
+          id: action.Position.id,
+          minInnings: 0,
+          maxInnings: 7
+        };
       }
-      return {...state};
+      return { ...state };
     case "REMOVE_PREFERENCE":
-      state.store[action.Player.id].preferences = state.store[action.Player.id].preferences.filter(
-        preference => preference !== action.Position.id
-      );
       delete state.store[action.Player.id].preferences[action.Position.id];
-      return {...state};
+      return { ...state };
     default:
       return state;
   }
@@ -350,7 +422,12 @@ export const inningReducer = (
   const newState = [...state];
   switch (action.type) {
     case "ADD_INNING":
-      return [...state, { positions: {}, locked: false }];
+      return [
+        ...state,
+        ...(state && state.length < 10
+          ? [{ positions: {}, locked: false }]
+          : [])
+      ];
     case "SET_PLAYER_POSITION":
       newState[action.Inning].positions[action.Player.id] = action.Position.id;
       return newState;
