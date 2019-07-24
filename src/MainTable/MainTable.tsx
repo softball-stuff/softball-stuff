@@ -100,13 +100,32 @@ function MainTable({
                 <td>Preferences:</td>
                 {/** Only create one select for each chosen position + 1 empty. For each chosen positon selected, have to call remove chosen position followed by add chosen position. For the empty just call add new position. 
                 Kyle says have fun, get some sleep. */}
-                {Innings.map((inning, ii) => (
+                {Players.store[playerId].preferences.map((pref, ii) => (
                   <td>
-                    {inning.locked === true ? (
-                      Positions.store[inning.positions[playerId] || 0].name
-                    ) : (
+                    {
                       <select
-                        value={inning.positions[playerId] || "0"}
+                        value={pref}
+                        onChange={event => {
+                          RemovePlayerPreference(Players.store[playerId],Positions.store[pref]);
+                          AddPlayerPreference(
+                            Players.store[playerId],
+                            Positions.store[(event.target.value as unknown) as number]
+                          );
+                        }}
+                      >
+                        {Object.values(Positions.store).map(position => (
+                          <option value={position.id}>{position.name}</option>
+                        ))}
+                      </select>
+                   }
+                  </td>
+                  
+                ))}
+                
+                <td>
+                    {
+                      <select
+                        value={"0"}
                         onChange={event => {
                           AddPlayerPreference(
                             Players.store[playerId],
@@ -118,9 +137,8 @@ function MainTable({
                           <option value={position.id}>{position.name}</option>
                         ))}
                       </select>
-                    )}
+                   }
                   </td>
-                ))}
               </tr>
             ) : null
           ];
@@ -260,7 +278,7 @@ export const playerReducer = (
         expanded: action.Player.id
       };
     case "ADD_PREFERENCE":
-      state.store[action.Player.id].preferences.concat(action.Position.id)
+      state.store[action.Player.id].preferences.push(action.Position.id)
       return {...state};
     case "REMOVE_PREFERENCE":
       delete state.store[action.Player.id].preferences[action.Position.id];
