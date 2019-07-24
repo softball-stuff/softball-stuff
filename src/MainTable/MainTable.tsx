@@ -8,6 +8,7 @@ function MainTable({
   Innings,
   AddPlayer,
   RemovePlayer,
+  ExpandPlayer,
   AddPosition,
   RemovePosition,
   SetPlayerPosition,
@@ -19,6 +20,7 @@ function MainTable({
   Innings: InningState;
   AddPlayer: (name: string) => void;
   RemovePlayer: (player: Player) => void;
+  ExpandPlayer: (player: Player) => void;
   AddPosition: (positionName: string) => void;
   RemovePosition: (position: Position) => void;
   SetPlayerPosition: (
@@ -50,14 +52,15 @@ function MainTable({
           ))}
         </tr>
         {Players.order.map(playerId => {
-          return (
+          return [
             <tr>
-              <td>{Players.store[playerId].name}</td>
-              <td>
-                <button onClick={() => RemovePlayer(Players.store[playerId])}>
-                  -
-                </button>
+              <td
+                style={{ cursor: "pointer" }}
+                onClick={() => ExpandPlayer(Players.store[playerId])}
+              >
+                {Players.store[playerId].name}
               </td>
+              <td />
               {Innings.map((inning, ii) => (
                 <td>
                   {inning.locked === true ? (
@@ -82,8 +85,40 @@ function MainTable({
                   )}
                 </td>
               ))}
-            </tr>
-          );
+            </tr>,
+            playerId === Players.expanded ? (
+              <tr>
+                <td><button onClick={() => RemovePlayer(Players.store[playerId])}>
+                  Remove Player
+                </button></td>
+                <td>Preferences:</td>
+                {Innings.map((inning, ii) => (
+                <td>
+                  {inning.locked === true ? (
+                    Positions.store[inning.positions[playerId] || 0].name
+                  ) : (
+                    <select
+                      value={inning.positions[playerId] || "0"}
+                      onChange={item => {
+                        SetPlayerPosition(
+                          ii,
+                          Players.store[playerId],
+                          Positions.store[
+                            (item.target.value as unknown) as number
+                          ]
+                        );
+                      }}
+                    >
+                      {Object.values(Positions.store).map(position => (
+                        <option value={position.id}>{position.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </td>
+              ))}
+              </tr>
+            ) : null
+          ];
         })}
         <tr>
           <td>
@@ -116,7 +151,7 @@ function MainTable({
 
       <div>
         <details>
-          <summary>Position Manager</summary>
+          <summary style={{ cursor: "pointer" }}>Position Manager</summary>
           <table>
             <tr>
               <th>Position Name</th>
@@ -181,13 +216,14 @@ type PlayerState = {
   store: Record<number, Player>;
   nextId: number;
   order: number[];
+  expanded: number;
 };
 type Player = { name: string; id: number };
 type Inning = { positions: Record<number, number>; locked: boolean };
 type InningState = Inning[];
 
 export const playerReducer = (
-  state: PlayerState = { store: {}, nextId: 0, order: [] },
+  state: PlayerState = { store: {}, nextId: 0, order: [], expanded: -1 },
   action: PlayerAction
 ) => {
   switch (action.type) {
@@ -203,7 +239,8 @@ export const playerReducer = (
           }
         },
         nextId: state.nextId,
-        order: [...state.order, id]
+        order: [...state.order, id],
+        expanded: state.expanded
       };
     case "REMOVE_PLAYER":
       state.order = state.order.filter(
@@ -211,6 +248,11 @@ export const playerReducer = (
       );
       delete state.store[action.Player.id];
       return { ...state };
+    case "EXPAND_PLAYER":
+      return {
+        ...state,
+        expanded: action.Player.id
+      };
     default:
       return state;
   }
@@ -286,7 +328,8 @@ export const inningReducer = (
 
 type AddPlayerAction = { type: "ADD_PLAYER"; PlayerName: string };
 type RemovePlayerAction = { type: "REMOVE_PLAYER"; Player: Player };
-type PlayerAction = AddPlayerAction | RemovePlayerAction;
+type ExpandPlayerAction = { type: "EXPAND_PLAYER"; Player: Player };
+type PlayerAction = AddPlayerAction | RemovePlayerAction | ExpandPlayerAction;
 type AddPositionAction = { type: "ADD_POSITION"; PositionName: string };
 type RemovePositionAction = { type: "REMOVE_POSITION"; Position: Position };
 type PositionAction = AddPositionAction | RemovePositionAction;
@@ -313,6 +356,13 @@ function addPlayer(PlayerName: string): PlayerAction {
 function removePlayer(Player: Player): PlayerAction {
   return {
     type: "REMOVE_PLAYER",
+    Player
+  };
+}
+
+function expandPlayer(Player: Player): PlayerAction {
+  return {
+    type: "EXPAND_PLAYER",
     Player
   };
 }
@@ -366,6 +416,7 @@ const mapStateToProps = (state: RootState) => ({
 const mapDispatchToProps = (dispatch: any) => ({
   AddPlayer: (PlayerName: string) => dispatch(addPlayer(PlayerName)),
   RemovePlayer: (Player: Player) => dispatch(removePlayer(Player)),
+  ExpandPlayer: (Player: Player) => dispatch(expandPlayer(Player)),
   AddPosition: (PositionName: string) => dispatch(addPosition(PositionName)),
   RemovePosition: (Position: Position) => dispatch(removePosition(Position)),
   SetPlayerPosition: (Inning: number, Player: Player, Position: Position) =>
