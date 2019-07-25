@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { connect } from "react-redux";
 import { RootState } from "../reducers";
-import generateSchedule from '../generator';
+import generateSchedule from "../generator";
 
 function MainTable({
   Players,
@@ -42,43 +42,54 @@ function MainTable({
   const [newPosition, setNewPositionName] = useState("");
 
   function generateLineup() {
-  const setupPlayers = generateSchedule(Innings.length, Object.values(Positions.store));
-  const setupConstraints = setupPlayers(Object.values(Players.store).map(p => ({
-    ...p, 
-    tags: [],
-    desiredTimeslots: Number.MAX_SAFE_INTEGER,
-    desiredRooms: Object.values(p.preferences).map(p => ({id: p.id, minOccupancy: p.minInnings, maxOccupancy: p.maxInnings}))
-  })));
-  const setupSorter = setupConstraints([]);
-  const generateNextInning = setupSorter();
+    const setupPlayers = generateSchedule(
+      Innings.length,
+      Object.values(Positions.store)
+    );
+    const setupConstraints = setupPlayers(
+      Object.values(Players.store).map(p => ({
+        ...p,
+        tags: [],
+        desiredTimeslots: Number.MAX_SAFE_INTEGER,
+        desiredRooms: Object.values(p.preferences).map(p => ({
+          id: p.id,
+          minOccupancy: p.minInnings,
+          maxOccupancy: p.maxInnings
+        }))
+      }))
+    );
+    const setupSorter = setupConstraints([]);
+    const generateNextInning = setupSorter();
 
-  const newInnings = Innings.map(inning => {
-    const positionPlayerMap = Object.entries(inning.positions)
-      .reduce((acc, [player, position]) => ({...acc, [position]: [...(acc[position] || []), player as unknown as number] }), {} as Record<number, number[]>);
-    if(inning.locked) {
-      generateNextInning(positionPlayerMap);
-      return inning;
-     } else {
-       const newGeneratedInning = generateNextInning();
-       
-       const newInning: Inning = {locked: true,
-      positions: {}};
+    const newInnings = Innings.map(inning => {
+      const positionPlayerMap = Object.entries(inning.positions).reduce(
+        (acc, [player, position]) => ({
+          ...acc,
+          [position]: [...(acc[position] || []), (player as unknown) as number]
+        }),
+        {} as Record<number, number[]>
+      );
+      if (inning.locked) {
+        generateNextInning(positionPlayerMap);
+        return inning;
+      } else {
+        const newGeneratedInning = generateNextInning();
 
-      for(const key in newGeneratedInning) {
-        const position: number = key as unknown as number;
-        const players = newGeneratedInning[position];
-        for(const player of players){
-          newInning.positions[player] = position;
+        const newInning: Inning = { locked: true, positions: {} };
+
+        for (const key in newGeneratedInning) {
+          const position: number = (key as unknown) as number;
+          const players = newGeneratedInning[position];
+          for (const player of players) {
+            newInning.positions[player] = position;
+          }
         }
-        
+
+        return newInning;
       }
-
-       return newInning;
-     }
-  });
-  UpdateInnings(newInnings);
-
-}
+    });
+    UpdateInnings(newInnings);
+  }
 
   return (
     <div>
@@ -477,7 +488,7 @@ export const inningReducer = (
     case "LOCK_INNING":
       newState[action.Inning].locked = !newState[action.Inning].locked;
       return newState;
-      case "UPDATE_INNINGS":
+    case "UPDATE_INNINGS":
       return [...action.Innings];
     default:
       return state;
@@ -514,7 +525,7 @@ type SetPlayerPositionAction = {
 };
 type AddInningAction = { type: "ADD_INNING" };
 type LockInningAction = { type: "LOCK_INNING"; Inning: number };
-type UpdateInningsAction = { type: "UPDATE_INNINGS"; Innings: Inning[]};
+type UpdateInningsAction = { type: "UPDATE_INNINGS"; Innings: Inning[] };
 type InningAction =
   | SetPlayerPositionAction
   | AddInningAction
@@ -605,7 +616,7 @@ function updateInnings(Innings: Inning[]): InningAction {
   return {
     type: "UPDATE_INNINGS",
     Innings
-  }
+  };
 }
 
 const mapStateToProps = (state: RootState) => ({
