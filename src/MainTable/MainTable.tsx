@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { connect } from "react-redux";
 import { RootState } from "../reducers";
+import generateSchedule from '../generator';
 
 function MainTable({
   Players,
@@ -15,7 +16,8 @@ function MainTable({
   RemovePosition,
   SetPlayerPosition,
   AddInning,
-  LockInning
+  LockInning,
+  UpdateInnings
 }: {
   Players: PlayerState;
   Positions: PositionState;
@@ -34,12 +36,53 @@ function MainTable({
   ) => void;
   AddInning: () => void;
   LockInning: (Inning: number) => void;
+  UpdateInnings: (innings: Inning[]) => void;
 }) {
   const [newPlayer, setNewPlayerName] = useState("");
   const [newPosition, setNewPositionName] = useState("");
 
+  function generateLineup() {
+  const setupPlayers = generateSchedule(Innings.length, Object.values(Positions.store));
+  const setupConstraints = setupPlayers(Object.values(Players.store).map(p => ({
+    ...p, 
+    tags: [],
+    desiredTimeslots: Number.MAX_SAFE_INTEGER,
+    desiredRooms: Object.values(p.preferences).map(p => ({id: p.id, minOccupancy: p.minInnings, maxOccupancy: p.maxInnings}))
+  })));
+  const setupSorter = setupConstraints([]);
+  const generateNextInning = setupSorter();
+
+  const newInnings = Innings.map(inning => {
+    const positionPlayerMap = Object.entries(inning.positions)
+      .reduce((acc, [player, position]) => ({...acc, [position]: [...(acc[position] || []), player as unknown as number] }), {} as Record<number, number[]>);
+    if(inning.locked) {
+      generateNextInning(positionPlayerMap);
+      return inning;
+     } else {
+       const newGeneratedInning = generateNextInning();
+       
+       const newInning: Inning = {locked: true,
+      positions: {}};
+
+      for(const key in newGeneratedInning) {
+        const position: number = key as unknown as number;
+        const players = newGeneratedInning[position];
+        for(const player of players){
+          newInning.positions[player] = position;
+        }
+        
+      }
+
+       return newInning;
+     }
+  });
+  UpdateInnings(newInnings);
+
+}
+
   return (
     <div>
+      <button onClick={() => generateLineup()}>Generate!</button>
       <table>
         <tr>
           <td>Innings</td>
@@ -434,6 +477,8 @@ export const inningReducer = (
     case "LOCK_INNING":
       newState[action.Inning].locked = !newState[action.Inning].locked;
       return newState;
+      case "UPDATE_INNINGS":
+      return [...action.Innings];
     default:
       return state;
   }
@@ -469,10 +514,12 @@ type SetPlayerPositionAction = {
 };
 type AddInningAction = { type: "ADD_INNING" };
 type LockInningAction = { type: "LOCK_INNING"; Inning: number };
+type UpdateInningsAction = { type: "UPDATE_INNINGS"; Innings: Inning[]};
 type InningAction =
   | SetPlayerPositionAction
   | AddInningAction
-  | LockInningAction;
+  | LockInningAction
+  | UpdateInningsAction;
 
 function addPlayer(PlayerName: string): PlayerAction {
   return {
@@ -554,6 +601,13 @@ function lockInning(Inning: number): InningAction {
   };
 }
 
+function updateInnings(Innings: Inning[]): InningAction {
+  return {
+    type: "UPDATE_INNINGS",
+    Innings
+  }
+}
+
 const mapStateToProps = (state: RootState) => ({
   Players: state.Players,
   Positions: state.Positions,
@@ -573,7 +627,8 @@ const mapDispatchToProps = (dispatch: any) => ({
   SetPlayerPosition: (Inning: number, Player: Player, Position: Position) =>
     dispatch(setPlayerPosition(Inning, Player, Position)),
   AddInning: () => dispatch(addInning()),
-  LockInning: (Inning: number) => dispatch(lockInning(Inning))
+  LockInning: (Inning: number) => dispatch(lockInning(Inning)),
+  UpdateInnings: (Innings: Inning[]) => dispatch(updateInnings(Innings))
 });
 
 export default connect(
