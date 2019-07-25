@@ -49,7 +49,7 @@ export const or = (...predicates: Predicate[]): Predicate => {
     return _or;
 }
 
-export const atMost = (max: number, predicate: Predicate): Constraint => () => {
+export const atMost = (max: number, predicate: Predicate): ConstraintInitializer => () => {
     let count = 0;
     const _atMost = (guest: Guest) => {
         return count < max && predicate(guest);
@@ -80,7 +80,7 @@ function getDefaultGuestSorter(guests: InternalGuest[]): GuestSorterHeuristic {
     }
 }
 
-type CheckedConstraints = {satisfied: Constraint[], unsatisfied: Constraint[] };
+type CheckedConstraints = { satisfied: Constraint[], unsatisfied: Constraint[] };
 function checkConstraints(guest: Guest, constraints: Constraint[]): CheckedConstraints {
     return constraints.reduce((acc, constraint) => {
         acc[constraint(guest) ? 'satisfied' : 'unsatisfied'].push(constraint);
@@ -115,7 +115,7 @@ export default function setupRooms(timeslots: number, rooms: Room[]) {
                         const sortedGuests = [...internalGuests].sort(guestSorter);
 
                         for (const guest of sortedGuests) {
-                            const [satisfied, unsatisfied] = checkConstraints(guest, constraints);
+                            const { satisfied, unsatisfied } = checkConstraints(guest, constraints);
                             if (unsatisfied.length > 0) {
                                 continue;
                             }
@@ -139,7 +139,7 @@ export default function setupRooms(timeslots: number, rooms: Room[]) {
                         const roomId = key as unknown as number;
                         for (const assignedGuestId of currentTimetable[roomId]) {
                             const guest = internalGuestMap[assignedGuestId];
-                            const [satisfied] = checkConstraints(guest, constraints);
+                            const { satisfied } = checkConstraints(guest, constraints);
                             satisfyAllConstraints(satisfied);
 
                             guest.assignedTimeslots++;
