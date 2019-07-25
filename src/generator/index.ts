@@ -1,7 +1,7 @@
 export type Room = {
     id: number,
-    min: number,
-    max: number
+    minOccupancy: number,
+    maxOccupancy: number
 };
 
 export type DesiredRoom = Room & {
@@ -109,7 +109,7 @@ export default function setupRooms(timeslots: number, rooms: Room[]) {
                 guestSorter = guestSorter || getDefaultGuestSorter(internalGuests);
                 let currentTimetable: Timetable;
                 for (let i = 0; i < timeslots; i++) {
-                    const userInput: Timetable = JSON.parse(JSON.stringify(yield JSON.parse(JSON.stringify(currentTimetable!))));
+                    const userInput: Timetable = yield currentTimetable!;
                     currentTimetable = userInput || JSON.parse(JSON.stringify(timetableTemplate));
                     if (!userInput) {
                         const sortedGuests = [...internalGuests].sort(guestSorter);
@@ -123,15 +123,16 @@ export default function setupRooms(timeslots: number, rooms: Room[]) {
                             // step e
                             const availableDesiredRooms = guest.desiredRooms
                                 // Exclude rooms for which the guest's preferences are satisfied
-                                .filter((d: DesiredRoom) => d.assigned < d.max)
+                                .filter((d: DesiredRoom) => d.assigned < d.maxOccupancy)
                                 // Exclude rooms that are already fully occupied
-                                .filter((d: DesiredRoom) => currentTimetable[d.id].length < rooms[d.id].max)
+                                .filter((d: DesiredRoom) => currentTimetable[d.id].length < rooms[d.id].maxOccupancy)
                                 // Sort so that the least-satisfied preference comes first
-                                .sort((a: DesiredRoom, b: DesiredRoom) => ((a.max - a.assigned) - (b.max - b.assigned)));
+                                .sort((a: DesiredRoom, b: DesiredRoom) => ((a.maxOccupancy - a.assigned) - (b.maxOccupancy - b.assigned)));
 
+                                if(availableDesiredRooms.length > 0) {
                             const assignedRoom = availableDesiredRooms[0];
-
                             currentTimetable[assignedRoom.id].push(guest.id);
+                                }
                         }
                     }
 
