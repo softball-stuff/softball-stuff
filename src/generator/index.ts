@@ -160,10 +160,12 @@ export default function setupRooms(timeslots: number, rooms: Room[]) {
                     currentTimetable[d.id].length < rooms[d.id].maxOccupancy
                 )
                 // Sort so that the least-satisfied preference comes first
-                .sort(
-                  (a: DesiredRoom, b: DesiredRoom) =>
-                    a.maxOccupancy - a.assigned - (b.maxOccupancy - b.assigned)
-                );
+                .sort((a: DesiredRoom, b: DesiredRoom) => {
+                  const aRemainingDesired = a.maxOccupancy - a.assigned;
+                  const bRemainingDesired = b.maxOccupancy - b.assigned;
+
+                  return bRemainingDesired - aRemainingDesired;
+                });
 
               if (availableDesiredRooms.length > 0) {
                 const assignedRoom = availableDesiredRooms[0];
