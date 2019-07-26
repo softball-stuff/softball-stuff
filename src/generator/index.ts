@@ -186,6 +186,9 @@ export default function setupRooms(timeslots: number, rooms: Room[]) {
             }
           }
         }
+
+        // return the last inning before ending
+        return currentTimetable!;
       }
       return function setupSorter(guestSorter?: GuestSorterHeuristic) {
         const scheduleGenerator = generateSchedules(guestSorter);
