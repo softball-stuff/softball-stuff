@@ -12,6 +12,7 @@ function MainTable({
   ExpandPlayer,
   AddPlayerPreference,
   RemovePlayerPreference,
+  UpdatePlayerPreference,
   AddPosition,
   RemovePosition,
   SetPlayerPosition,
@@ -27,6 +28,12 @@ function MainTable({
   ExpandPlayer: (player: Player) => void;
   AddPlayerPreference: (player: Player, position: Position) => void;
   RemovePlayerPreference: (player: Player, position: Position) => void;
+  UpdatePlayerPreference: (
+    player: Player,
+    position: Position,
+    preferenceMin: number,
+    preferenceMax: number
+  ) => void;
   AddPosition: (positionName: string) => void;
   RemovePosition: (position: Position) => void;
   SetPlayerPosition: (
@@ -198,7 +205,6 @@ function MainTable({
                     <td>
                       {
                         <select
-                          value={"0"}
                           onChange={event => {
                             AddPlayerPreference(
                               Players.store[playerId],
@@ -245,8 +251,26 @@ function MainTable({
                       </td>
                             ))*/}
                     {Object.entries(Players.store[playerId].preferences).map(
-                      ([postionId, pref], ii) => (
-                        <td>{<select value={pref.minInnings} />}</td>
+                      ([positionId, pref], ii) => (
+                        <td>
+                          <select
+                            value={pref.minInnings}
+                            onChange={event => {
+                              UpdatePlayerPreference(
+                                Players.store[playerId],
+                                Positions.store[
+                                  (positionId as unknown) as number
+                                ],
+                                (event.target.value as unknown) as number,
+                                pref.maxInnings
+                              );
+                            }}
+                          >
+                            {[...Array(Innings.length + 1)].map((e, ii) => (
+                              <option value={ii}>{ii}</option>
+                            ))}
+                          </select>
+                        </td>
                       )
                     )}
                   </tr>,
@@ -254,8 +278,26 @@ function MainTable({
                     <td />
                     <td>Max Innings:</td>
                     {Object.entries(Players.store[playerId].preferences).map(
-                      ([postionId, pref], ii) => (
-                        <td>{<select value={pref.minInnings} />}</td>
+                      ([positionId, pref], ii) => (
+                        <td>
+                          <select
+                            value={pref.maxInnings}
+                            onChange={event => {
+                              UpdatePlayerPreference(
+                                Players.store[playerId],
+                                Positions.store[
+                                  (positionId as unknown) as number
+                                ],
+                                pref.minInnings,
+                                (event.target.value as unknown) as number
+                              );
+                            }}
+                          >
+                            {[...Array(Innings.length + 1)].map((e, ii) => (
+                              <option value={ii}>{ii}</option>
+                            ))}
+                          </select>
+                        </td>
                       )
                     )}
                   </tr>
@@ -415,6 +457,12 @@ export const playerReducer = (
     case "REMOVE_PREFERENCE":
       delete state.store[action.Player.id].preferences[action.Position.id];
       return { ...state };
+    case "UPDATE_PREFERENCE":
+      const preference =
+        state.store[action.Player.id].preferences[action.Position.id];
+      preference.minInnings = action.PreferenceMin;
+      preference.maxInnings = action.PreferenceMax;
+      return { ...state };
     default:
       return state;
   }
@@ -508,12 +556,20 @@ type RemovePlayerPreferenceAction = {
   Player: Player;
   Position: Position;
 };
+type UpdatePlayerPreferenceAction = {
+  type: "UPDATE_PREFERENCE";
+  Player: Player;
+  Position: Position;
+  PreferenceMin: number;
+  PreferenceMax: number;
+};
 type PlayerAction =
   | AddPlayerAction
   | RemovePlayerAction
   | ExpandPlayerAction
   | AddPlayerPreferenceAction
-  | RemovePlayerPreferenceAction;
+  | RemovePlayerPreferenceAction
+  | UpdatePlayerPreferenceAction;
 type AddPositionAction = { type: "ADD_POSITION"; PositionName: string };
 type RemovePositionAction = { type: "REMOVE_POSITION"; Position: Position };
 type PositionAction = AddPositionAction | RemovePositionAction;
@@ -569,6 +625,21 @@ function removePlayerPreference(
     type: "REMOVE_PREFERENCE",
     Player,
     Position
+  };
+}
+
+function updatePlayerPreference(
+  Player: Player,
+  Position: Position,
+  PreferenceMin: number,
+  PreferenceMax: number
+): PlayerAction {
+  return {
+    type: "UPDATE_PREFERENCE",
+    Player,
+    Position,
+    PreferenceMin,
+    PreferenceMax
   };
 }
 
@@ -633,6 +704,15 @@ const mapDispatchToProps = (dispatch: any) => ({
     dispatch(addPlayerPreference(Player, Position)),
   RemovePlayerPreference: (Player: Player, Position: Position) =>
     dispatch(removePlayerPreference(Player, Position)),
+  UpdatePlayerPreference: (
+    Player: Player,
+    Position: Position,
+    PreferenceMin: number,
+    PreferenceMax: number
+  ) =>
+    dispatch(
+      updatePlayerPreference(Player, Position, PreferenceMin, PreferenceMax)
+    ),
   AddPosition: (PositionName: string) => dispatch(addPosition(PositionName)),
   RemovePosition: (Position: Position) => dispatch(removePosition(Position)),
   SetPlayerPosition: (Inning: number, Player: Player, Position: Position) =>
